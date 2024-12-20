@@ -1,15 +1,16 @@
 /* standard use */
 use std::io::Write;
 use std::io::{Error, ErrorKind};
+use std::str::FromStr;
 
 /* external crate */
 use rayon::prelude::*;
 
 /* private use */
-use crate::abacus::AbacusByTotal;
-use crate::cli;
-use crate::graph::GraphAuxilliary;
 use crate::util::{CountType, Threshold};
+
+use super::abacus::AbacusByTotal;
+use super::graph::GraphStorage;
 
 #[derive(Debug, Clone)]
 pub struct Hist {
@@ -35,7 +36,7 @@ pub fn choose(n: usize, k: usize) -> f64 {
 }
 
 impl Hist {
-    pub fn from_abacus(abacus: &AbacusByTotal, graph_aux: Option<&GraphAuxilliary>) -> Self {
+    pub fn from_abacus(abacus: &AbacusByTotal, graph_aux: Option<&GraphStorage>) -> Self {
         Self {
             count: abacus.count,
             coverage: match abacus.count {
@@ -64,7 +65,7 @@ impl Hist {
         }
     }
 
-    pub fn calc_all_growths(&self, hist_aux: &HistAuxilliary) -> Vec<Vec<f64>> {
+    pub fn calc_all_growths(&self, hist_aux: &ThresholdContainer) -> Vec<Vec<f64>> {
         let mut growths: Vec<Vec<f64>> = hist_aux
             .coverage
             .par_iter()
@@ -196,31 +197,76 @@ impl Hist {
     }
 }
 
-pub struct HistAuxilliary {
+pub enum RequireThreshold {
+    Absolute,
+    Relative,
+    #[allow(dead_code)]
+    Either,
+}
+
+pub fn parse_threshold_cli(
+    threshold_str: &str,
+    require: RequireThreshold,
+) -> Result<Vec<Threshold>, Error> {
+    let mut thresholds = Vec::new();
+
+    for (i, el) in threshold_str.split(',').enumerate() {
+        let rel_val = match f64::from_str(el.trim()) {
+            Ok(t) => {
+                if (0.0..=1.0).contains(&t) {
+                    Ok(t)
+                } else {
+                    Err(Error::new(
+                        ErrorKind::InvalidData,
+                        format!(
+                            "relative threshold \"{}\" ({}. element in list) must be within [0,1].",
+                            &threshold_str,
+                            i + 1
+                        ),
+                    ))
+                }
+            }
+            Err(_) => Err(Error::new(
+                ErrorKind::InvalidData,
+                format!(
+                    "threshold \"{}\" ({}. element in list) is required to be float, but isn't.",
+                    &threshold_str,
+                    i + 1
+                ),
+            )),
+        };
+
+        thresholds.push(
+            match require {
+                RequireThreshold::Absolute => Threshold::Absolute(usize::from_str(el.trim()).map_err(|_|
+                    Error::new(
+                            ErrorKind::InvalidData,
+                            format!("threshold \"{}\" ({}. element in list) is required to be integer, but isn't.",
+                    &threshold_str,
+                    i + 1)))?),
+            RequireThreshold::Relative => Threshold::Relative(rel_val?),
+            RequireThreshold::Either =>
+        if let Ok(t) = usize::from_str(el.trim()) {
+            Threshold::Absolute(t)
+        } else {
+            Threshold::Relative(rel_val?)
+            }
+            }
+            );
+    }
+    Ok(thresholds)
+}
+
+pub struct ThresholdContainer {
     pub quorum: Vec<Threshold>,
     pub coverage: Vec<Threshold>,
 }
 
-impl HistAuxilliary {
-    pub fn from_params(params: &cli::Params) -> Result<Self, Error> {
-        match params {
-            cli::Params::Histgrowth {
-                quorum, coverage, ..
-            }
-            | cli::Params::Growth {
-                quorum, coverage, ..
-            }
-            | cli::Params::OrderedHistgrowth {
-                quorum, coverage, ..
-            } => Self::parse_params(quorum, coverage),
-            _ => Err(Error::new(ErrorKind::Other, "not implemented")),
-        }
-    }
-
-    fn parse_params(quorum: &str, coverage: &str) -> Result<Self, Error> {
+impl ThresholdContainer {
+    pub fn parse_params(quorum: &str, coverage: &str) -> Result<Self, Error> {
         let mut quorum_thresholds = Vec::new();
         if !quorum.is_empty() {
-            quorum_thresholds = cli::parse_threshold_cli(quorum, cli::RequireThreshold::Relative)?;
+            quorum_thresholds = parse_threshold_cli(quorum, RequireThreshold::Relative)?;
             log::debug!(
                 "loaded {} quorum thresholds: {}",
                 quorum_thresholds.len(),
@@ -240,8 +286,7 @@ impl HistAuxilliary {
 
         let mut coverage_thresholds = Vec::new();
         if !coverage.is_empty() {
-            coverage_thresholds =
-                cli::parse_threshold_cli(coverage, cli::RequireThreshold::Absolute)?;
+            coverage_thresholds = parse_threshold_cli(coverage, RequireThreshold::Absolute)?;
             log::debug!(
                 "loaded {} coverage thresholds: {}",
                 coverage_thresholds.len(),

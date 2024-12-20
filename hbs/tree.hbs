@@ -1,0 +1,46 @@
+<div class="flex-shrink-0 d-flex flex-column vh-100 p-3 tree-navbar" style="width: 400px;">
+  <a href="/" class="d-flex align-items-center pb-3 mb-3 link-body-emphasis text-decoration-none border-bottom">
+    <svg class="bi pe-none me-2" width="30" height="24"><use xlink:href="#bootstrap"/></svg>
+    <span class="fs-5 fw-semibold">Panacus</span>
+  </a>
+  <ul class="tree mb-auto nav">
+    {{#each analyses}}
+    <li>
+      <button class="btn icon-space btn-toggle" style="width: 95%" data-bs-toggle="collapse" data-bs-target="#{{this.id}}-analysis-collapse" aria-expanded="false" aria-controls="{{this.id}}-analysis-collapse">
+        <div style="float: left">
+          <svg class="bi pe-none me-2 tree-icon" width="30" height="24"><use xlink:href="#{{this.icon}}-icon"/></svg>
+          {{this.title}}
+        </div>
+      </button>
+      <div id="{{this.id}}-analysis-collapse" class="collapse">
+        <ul>
+          {{#each this.runs}}
+          <li>
+            <button class="btn icon-space btn-toggle" style="width: 95%" data-bs-toggle="collapse" data-bs-target="#{{this.id}}-run-collapse" aria-expanded="false" aria-controls="{{this.id}}-run-collapse">
+              <div style="float: left; padding-left: 7px">
+                {{this.title}}
+              </div>
+            </button>
+            <div id="{{this.id}}-run-collapse" class="collapse">
+              <ul>
+                {{#each this.countables}}
+                <li class="nav-item">
+                  <button class="btn nav-link btn-nav" data-bs-toggle="tab" data-bs-target="#nav-{{this.href}}" type="button" id="{{this.id}}">{{this.title}}</button>
+                </li>
+                {{/each}}
+              </ul>
+            </div>
+          </li>
+          {{/each}}
+        </ul>
+      </div>
+    </li>
+    {{/each}}
+  </ul>
+  <ul class="list-unstyled ps-0">
+    <li class="border-top my-3"></li>
+    <li><a href="https://github.com/marschall-lab/panacus" class="btn">GitHub</a></li>
+    <li><a href="#" class="btn">Documentation</a></li>
+    <li class="version-text">Created on {{timestamp}} using<br> panacus {{version}}</li>
+  </ul>
+</div>

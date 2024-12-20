@@ -1,0 +1,28 @@
+<div class="tab-pane fade" id="nav-{{id}}" role="tabpanel" aria-labelledby="nav-{{id}}">
+  <div class="d-flex justify-content-between align-items-end">
+    <div>
+      <p class="h5">{{analysis}}</p>
+      <p class="h2"><b>{{run_name}}</b></p>
+      <p>{{countable}}</p>
+    </div>
+    <div class="btn-group" role="group" aria-label="Basic example">
+      {{#if has_table}}
+      <button type="button" class="btn btn-outline-secondary" id="btn-download-table-{{id}}">Download table</button>
+      {{/if}}
+      {{#if has_graph}}
+      <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">Download plot</button>
+      <ul class="dropdown-menu">
+        <li><a class="dropdown-item" href="#">As svg</a></li>
+        <li><a class="dropdown-item" href="#" id="btn-download-plot-{{id}}">As png</a></li>
+      </ul>
+      {{/if}}
+    </div>
+  </div>
+  <div>
+    <br/>
+    {{#each items}}
+    {{{this}}}
+    <br/>
+    {{/each}}
+  </div>
+</div>

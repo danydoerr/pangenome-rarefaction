@@ -12,3 +12,8 @@ etc/css-dist/
 etc/node_modules/
 etc/package-lock.json
 etc/package.json
+.pre-commit-config.yaml
+**.old
+/*.yaml
+/*.svg
+/*.data
